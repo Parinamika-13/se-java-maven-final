@@ -1,34 +1,54 @@
-# Use Docker Compose version 3.9
 version: "3.9"
 
 services:
 
-  # Container 1: Tomcat server running your Smart Assessment Hub app
-  tomcat:
-    image: parinamikabhanu/imagese:latest   # Your Docker Hub app image
-    container_name: tomcat_app              # Container name
+  tomcat1:
+    image: neksha/se-lab2-web-maven:latest
+    container_name: tomcat-app
     ports:
-      - "8081:8080"                         # Map host port 8080 to container port 8080
-    depends_on:
-      - mysql                               # Wait for MySQL to start first
-    volumes:
-      - tomcat_data:/usr/local/tomcat/webapps  # Persist application files
+      - "8081:8080"
+    restart: always
 
-  # Container 2: MySQL database
-  mysql:
+  wordpress-db:
     image: mysql:8.0
-    container_name: mysql_db
-    environment:                             # Environment variables for DB
-      MYSQL_ROOT_PASSWORD: rootpass          # Root password
-      MYSQL_DATABASE: smartdb                # Default database
-      MYSQL_USER: smartuser                  # Database user
-      MYSQL_PASSWORD: smartpass              # Database password
+    container_name: wordpress-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wpdb
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass
     ports:
-      - "3307:3306"                          # Map host port 3306 to container port 3306
+      - "3307:3306"
     volumes:
-      - mysql_data:/var/lib/mysql            # Persist database files
+      - wpdb_data:/var/lib/mysql
 
-# Define persistent volumes
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress-site
+    restart: always
+    ports:
+      - "8095:80"
+    environment:
+      WORDPRESS_DB_HOST: wordpress-db:3306
+      WORDPRESS_DB_NAME: wpdb
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass
+    depends_on:
+      - wordpress-db
+    volumes:
+      - wp_content:/var/www/html
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-server
+    ports:
+      - "8091:80"
+    restart: always
+    depends_on:
+      - tomcat1
+      - wordpress
+
 volumes:
-  tomcat_data:
-  mysql_data:
+  wpdb_data:
+  wp_content:
